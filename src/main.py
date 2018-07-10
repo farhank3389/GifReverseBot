@@ -4,29 +4,6 @@ import praw
 import requests
 import os
 
-bot = praw.Reddit(
-        user_agent    = "gifreversebot",
-        client_id     = config.clientid,
-        client_secret = config.secret,
-        username      = config.username,
-        password      = config.password)
-
-while True:
-    for message in bot.inbox.unread():
-        if not message.was_comment:
-            continue
-
-        post = message.submission
-        if post.is_self:
-            continue
-
-        url = post.url
-        gif_downloaded = get_file(url)
-
-        if not gif_downloaded:
-            os.remove("temp_gif")
-            continue
-
 
 def processImage(infile):
     try:
@@ -83,4 +60,29 @@ def get_token(client_id, client_secret):
         return res['access_token']
 
 
+def main():
+    bot = praw.Reddit(
+            user_agent    = "gifreversebot",
+            client_id     = config.clientid,
+            client_secret = config.secret,
+            username      = config.username,
+            password      = config.password)
+    while True:
+        for message in bot.inbox.unread():
+            if not message.was_comment:
+                continue
+        
+        post = message.submission
+        if post.is_self:
+            continue
+
+        url = post.url
+        gif_downloaded = get_file(url)
+
+        if not gif_downloaded:
+            os.remove("temp_gif")
+            continue
+
+if __name__ == "__main__":
+    main()
 
