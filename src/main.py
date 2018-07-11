@@ -7,7 +7,7 @@ import time
 from urllib.parse import urlparse
 
 
-def processImage(infile, outfile):
+def process_file(infile, outfile):
     with open('/dev/null', 'a') as null:
         ret = subprocess.run(['/usr/bin/ffmpeg', '-i', infile, '-vf', 'reverse', outfile], shell=False, stdout=null, stderr=null)
 
@@ -28,23 +28,24 @@ def get_file(url):
 
     req = requests.get(url, stream=True)
     if req.status_code == 200:
-        with open("temp_gif", 'wb') as f:
+        with open("/tmp/temp_gif", 'wb') as f:
             for chunk in r.iter_content(2048):
                 f.write(chunk)
 
-                if os.path.getsize("temp_gif") > 100000000:
+                if os.path.getsize("/tmp/temp_gif") > 100000000:
                     return False
         return True
 
     else:
+        # log
         return False
 
 
 def get_token(client_id, client_secret):
         payload = {
                 'grant_type': 'client_credentials',
-                'client_id': config.gfycatID,
-                'client_secret': config.gfycatSecret
+                'client_id': client_id,
+                'client_secret': client_secret
                 }
         req = requests.post('https://api.gfycat.com/v1/oauth/token', data=str(payload))
         res = req.json()
@@ -61,8 +62,21 @@ def main():
             client_secret = config.secret,
             username      = config.username,
             password      = config.password)
+
     while True:
         for message in bot.inbox.unread():
+
+            try:
+                os.remove('/tmp/temp_gif')
+            except FileNotFoundError:
+                pass
+            try:
+                os.remove('/tmp/reverse.mp4')
+            except FileNotFoundError:
+                pass
+
+            message.markread()
+
             if not message.was_comment:
                 continue
         
@@ -74,8 +88,17 @@ def main():
             gif_downloaded = get_file(url)
 
             if not gif_downloaded:
-                os.remove("temp_gif")
                 continue
+            
+            gif_reversed = process_image("/tmp/temp_gif", "/tmp/reversed.mp4")
+            if not gif_reversed:
+                continue
+
+        
+
+
+
+
         
         time.sleep(5)
 
