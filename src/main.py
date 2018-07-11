@@ -54,6 +54,13 @@ def get_token(client_id, client_secret):
             sys.exit() # need to change this
         return res['access_token']
 
+def upload_file(outFile, accessToken, title):
+    headers = { 'Authorization': 'Bearer {}'.format(accessToken) }
+    data = '{{"title":{}}}'.format(title)
+
+    r = requests.post("https://api.gfycat.com/v1/gfycats", data = datakey, headers = headers)
+
+
 
 def main():
     bot = praw.Reddit(
@@ -86,7 +93,6 @@ def main():
             
             url = post.url
             gif_downloaded = get_file(url)
-
             if not gif_downloaded:
                 continue
             
@@ -94,7 +100,15 @@ def main():
             if not gif_reversed:
                 continue
 
-        
+            gfycatToken = get_token(config.gfycatID, config.gfycatSecret)
+
+            title = post.title
+            if len(title) > 291:
+                title = title[:-(9 - (300 % len(title)))]
+            title = title + " Reversed"
+            
+            upload_file("/tmp/reversed.mp4", gfycatToken, title)
+            
 
 
 
