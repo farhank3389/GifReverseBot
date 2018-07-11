@@ -58,7 +58,10 @@ def upload_file(outFile, accessToken, title):
     headers = { 'Authorization': 'Bearer {}'.format(accessToken) }
     data = '{{"title":{}}}'.format(title)
 
-    r = requests.post("https://api.gfycat.com/v1/gfycats", data = datakey, headers = headers)
+    req = requests.post("https://api.gfycat.com/v1/gfycats", data = datakey, headers = headers)
+    if req.status_code == 401:
+        return 401
+
 
 def delete_files():
     try:
@@ -104,15 +107,12 @@ def main():
 
             gfycatToken = get_token(config.gfycatID, config.gfycatSecret)
 
-            title = post.title
-            if len(title) > 291:
-                title = title[:-(9 - (300 % len(title)))]
+            title = post.shortlink
+            if len(title) > 131:
+                title = title[:-(9 - (140 % len(title)))]
             title = title + " Reversed"
 
-            print(title)
-            print(gfycatToken)
-            
-            #upload_file("/tmp/reversed.mp4", gfycatToken, title)
+            upload_file("/tmp/reversed.mp4", gfycatToken, title)
             
         
         time.sleep(5)
