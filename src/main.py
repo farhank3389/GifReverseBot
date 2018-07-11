@@ -29,7 +29,7 @@ def get_file(url):
     req = requests.get(url, stream=True)
     if req.status_code == 200:
         with open("/tmp/temp_gif", 'wb') as f:
-            for chunk in r.iter_content(2048):
+            for chunk in req.iter_content(2048):
                 f.write(chunk)
 
                 if os.path.getsize("/tmp/temp_gif") > 100000000:
@@ -60,7 +60,15 @@ def upload_file(outFile, accessToken, title):
 
     r = requests.post("https://api.gfycat.com/v1/gfycats", data = datakey, headers = headers)
 
-
+def delete_files():
+    try:
+        os.remove('/tmp/temp_gif')
+    except FileNotFoundError:
+        pass
+    try:
+        os.remove('/tmp/reversed.mp4')
+    except FileNotFoundError:
+        pass
 
 def main():
     bot = praw.Reddit(
@@ -72,17 +80,11 @@ def main():
 
     while True:
         for message in bot.inbox.unread():
+            print('received message: ' + message.body)
 
-            try:
-                os.remove('/tmp/temp_gif')
-            except FileNotFoundError:
-                pass
-            try:
-                os.remove('/tmp/reverse.mp4')
-            except FileNotFoundError:
-                pass
+            delete_files()
 
-            message.markread()
+            message.mark_read()
 
             if not message.was_comment:
                 continue
@@ -96,7 +98,7 @@ def main():
             if not gif_downloaded:
                 continue
             
-            gif_reversed = process_image("/tmp/temp_gif", "/tmp/reversed.mp4")
+            gif_reversed = process_file("/tmp/temp_gif", "/tmp/reversed.mp4")
             if not gif_reversed:
                 continue
 
@@ -106,13 +108,12 @@ def main():
             if len(title) > 291:
                 title = title[:-(9 - (300 % len(title)))]
             title = title + " Reversed"
+
+            print(title)
+            print(gfycatToken)
             
-            upload_file("/tmp/reversed.mp4", gfycatToken, title)
+            #upload_file("/tmp/reversed.mp4", gfycatToken, title)
             
-
-
-
-
         
         time.sleep(5)
 
