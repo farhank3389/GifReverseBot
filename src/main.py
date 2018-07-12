@@ -49,7 +49,7 @@ def get_file(url):
         if parse.path.endswith('.gifv'):
             replace_gifv = parse._replace(path = parse.path[:-4] + 'mp4')
             url = replace_gifv.geturl()
-    elif parse.netloc.lower() not in ("giant.gyfcat.com", "zippy.gfycat.com"):
+    elif parse.netloc.lower() not in ("giant.gfycat.com", "zippy.gfycat.com"):
         print("Not imgur or gfycat link")
         return
 
@@ -163,7 +163,7 @@ def main():
 
             message.mark_read()
 
-            if not message.was_comment or message.body != "/u/redditgifreversebot":
+            if not message.was_comment or message.body.lower() != "/u/redditgifreversebot":
                 print("continuing")
                 continue
         
