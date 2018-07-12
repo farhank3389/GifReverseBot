@@ -7,6 +7,15 @@ import time
 from urllib.parse import urlparse
 
 
+REPLY = """[Here is a reversed version of the gif](https://gfycat.com/{})
+
+
+&nbsp;
+
+---
+
+This action was performed by a bot. I am still being developed so I will probably make mistakes :(. Send me a PM if you find an issue."""
+
 def process_file(infile, outfile):
     with open('/dev/null', 'a') as null:
         ret = subprocess.run(['/usr/bin/ffmpeg', '-i', infile, '-vf', 'reverse', outfile], shell=False, stdout=null, stderr=null)
@@ -58,10 +67,52 @@ def upload_file(outFile, accessToken, title):
     headers = { 'Authorization': 'Bearer {}'.format(accessToken) }
     data = '{{"title":{}}}'.format(title)
 
-    req = requests.post("https://api.gfycat.com/v1/gfycats", data = datakey, headers = headers)
-    if req.status_code == 401:
-        return 401
+    gfycat_name = requests.post("https://api.gfycat.com/v1/gfycats", data = data, headers = headers)
+    
+    for i in range(2): # try twice again if it fails
+        if gfycat_name.status_code == 401:
+            accessToken = get_token(config.gfycatID, config.gfycatSecret)
+            headers = { "Authorization": "Bearer {}".format(accessToken) }
+            gfycat_name = requests.post("https://api.gfycat.com/v1/gfycats", data = data, headers = headers)
+        else:
+            break
 
+    if gfycat_name.status_code == 401:
+        return
+
+    gfyname = gfycat_name.json()["gfyname"]
+    
+    with open(outFile, 'rb') as f:
+        send_file = requests.put("https://filedrop.gfycat.com/" + gfyname, data=f)
+        print(send_file.status_code)
+        if send_file.status_code != 200:
+            return
+        return gfyname
+
+def check_status(gfyname):
+    req = requests.get("https://api.gfycat.com/v1/gfycats/fetch/status/" + gfyname)
+    if req.status_code != 200:
+        time.sleep(5)
+        return False
+
+    status = {"task":"encoding"}
+    count = 0
+    while status["task"] == "encoding":
+        req = requests.get("https://api.gfycat.com/v1/gfycats/fetch/status/" + gfyname)
+        if req.status_code != 200:
+            time.sleep(5)
+            return
+
+        status = req.json().get("task")
+        if status is None:
+            return
+        if status == "complete":
+            return "https://api.gfycat.com/v1/gfycats/fetch/status/" + gfyname 
+        
+        time.sleep(3)
+        count += 1
+        if count > 50:
+            return
 
 def delete_files():
     try:
@@ -83,13 +134,15 @@ def main():
 
     while True:
         for message in bot.inbox.unread():
-            print('received message: ' + message.body)
+            print('received message: ' + repr(message.body))
+
 
             delete_files()
 
             message.mark_read()
 
-            if not message.was_comment:
+            if not message.was_comment or message.body != "/u/redditgifreversebot":
+                print("continuing")
                 continue
         
             post = message.submission
@@ -112,9 +165,15 @@ def main():
                 title = title[:-(9 - (140 % len(title)))]
             title = title + " Reversed"
 
-            upload_file("/tmp/reversed.mp4", gfycatToken, title)
-            
-        
+            gfyname = upload_file("/tmp/reversed.mp4", gfycatToken, title)
+            if gfyname is None:
+                continue
+            status = check_status(gfyname)
+            if gfyname is None:
+                continue
+
+            message.reply(REPLY.format(gfyname)
+
         time.sleep(5)
 
 if __name__ == "__main__":
