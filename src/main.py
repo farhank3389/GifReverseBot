@@ -4,6 +4,7 @@ import requests
 import os
 import subprocess
 import time
+import logging
 from urllib.parse import urlparse
 
 
@@ -17,6 +18,7 @@ REPLY = """[Here is a reversed version of the gif](https://gfycat.com/{})
 This action was performed by a bot. I am new and still being developed so I will probably make mistakes :(.  Please send me a PM if you find an issue."""
 
 def process_file(infile, outfile):
+    logger.debug("Processing {} to {}".format(infile, outfile))
     with open('/tmp/ffmpeg_log.log', 'w') as log:
         ret = subprocess.run(['/usr/bin/ffmpeg', '-threads', '3', '-i', infile, '-vf', 'reverse', outfile], shell=False, stdout=log, stderr=log)
 
@@ -197,10 +199,41 @@ def main():
                 continue
             
             print("replying with: " + REPLY.format(gfyname))
-            message.reply(REPLY.format(gfyname))
+            err = "RATELIMIT"
+            while "RATELIMIT" in err:
+                try:
+                    message.reply(REPLY.format(gfyname))
+                    err = ""
+                except praw.exceptions.APIException as e:
+                    err = str(e)
+                    print(err)
+                    print(0)
+                    sleep = err.split("RATELIMIT: 'you are doing that too much. try again in ")[1].split(".' on field 'ratelimit'")[0].split()
+                    print(sleep)
+                    if sleep[1] ==  "minutes":
+                        sleep = int(sleep[0]) * 60
+                    else:
+                        sleep = int(sleep[0])
+                    print(err)
+                    print("sleeping for {} seconds".format(sleep))
+                    time.sleep(sleep + 15)
+
 
         time.sleep(5)
 
 if __name__ == "__main__":
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(config.logLevel)
+
+    handler = logging.FileHandler(config.logFile)
+    handler.setLevel(config.logLevel)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
+
+    logger.info("Starting...")
     main()
 
