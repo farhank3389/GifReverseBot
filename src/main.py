@@ -17,8 +17,8 @@ REPLY = """[Here is a reversed version of the gif](https://gfycat.com/{})
 This action was performed by a bot. I am still being developed so I will probably make mistakes :(. Send me a PM if you find an issue."""
 
 def process_file(infile, outfile):
-    with open('/dev/null', 'a') as null:
-        ret = subprocess.run(['/usr/bin/ffmpeg', '-i', infile, '-vf', 'reverse', outfile], shell=False, stdout=null, stderr=null)
+    with open('/tmp/ffmpeg_log.log', 'w') as log:
+        ret = subprocess.run(['/usr/bin/ffmpeg', '-threads', '3', '-i', infile, '-vf', 'reverse', outfile], shell=False, stdout=log, stderr=log)
 
     try:
         ret.check_returncode()
@@ -31,7 +31,21 @@ def process_file(infile, outfile):
 def get_file(url):
 
     parse = urlparse(url)
-    if parse.path.endswith('.gifv'):
+
+    if parse.netloc.lower() == "gfycat.com":
+        gfyname = parse.path.strip("/")
+        url = requests.get("https://api.gfycat.com/v1/gfycats/" + gfyname)
+        if url.status_code  != 200:
+            return
+        
+        json = url.json()
+
+        if "errorMessage" in json:
+            return
+
+        url = json["gfyItem"]["mp4Url"]
+
+    elif parse.path.endswith('.gifv'):
         replace_gifv = parse._replace(path = parse.path[:-4] + 'mp4')
         url = replace_gifv.geturl()
 
@@ -42,12 +56,12 @@ def get_file(url):
                 f.write(chunk)
 
                 if os.path.getsize("/tmp/temp_gif") > 100000000:
-                    return False
+                    return
         return True
 
     else:
         # log
-        return False
+        return
 
 
 def get_token(client_id, client_secret):
@@ -81,6 +95,7 @@ def upload_file(outFile, accessToken, title):
         return
 
     gfyname = gfycat_name.json()["gfyname"]
+    print(gfyname)
     
     with open(outFile, 'rb') as f:
         send_file = requests.put("https://filedrop.gfycat.com/" + gfyname, data=f)
@@ -95,19 +110,23 @@ def check_status(gfyname):
         time.sleep(5)
         return False
 
-    status = {"task":"encoding"}
+    status = "encoding"
+    print(status, type(status))
     count = 0
-    while status["task"] == "encoding":
+    while status == "encoding":
         req = requests.get("https://api.gfycat.com/v1/gfycats/fetch/status/" + gfyname)
         if req.status_code != 200:
-            time.sleep(5)
+            time.sleep(1)
             return
+        req= req.json()
 
-        status = req.json().get("task")
+        status = req.get("task")
         if status is None:
             return
         if status == "complete":
-            return "https://api.gfycat.com/v1/gfycats/fetch/status/" + gfyname 
+            if "gfyname" in req:
+                return req["gfyname"]
+            return gfyname 
         
         time.sleep(3)
         count += 1
@@ -166,11 +185,14 @@ def main():
 
             gfyname = upload_file("/tmp/reversed.mp4", gfycatToken, title)
             if gfyname is None:
+                print("upload file returned None")
                 continue
-            status = check_status(gfyname)
+            gfyname = check_status(gfyname)
             if gfyname is None:
+                print("check status returned None")
                 continue
-
+            
+            print("replying with: " + REPLY.format(gfyname))
             message.reply(REPLY.format(gfyname))
 
         time.sleep(5)
