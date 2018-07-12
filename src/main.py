@@ -136,7 +136,6 @@ def main():
         for message in bot.inbox.unread():
             print('received message: ' + repr(message.body))
 
-
             delete_files()
 
             message.mark_read()
@@ -172,7 +171,7 @@ def main():
             if gfyname is None:
                 continue
 
-            message.reply(REPLY.format(gfyname)
+            message.reply(REPLY.format(gfyname))
 
         time.sleep(5)
 
