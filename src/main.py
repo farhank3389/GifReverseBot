@@ -14,7 +14,7 @@ REPLY = """[Here is a reversed version of the gif](https://gfycat.com/{})
 
 ---
 
-This action was performed by a bot. I am still being developed so I will probably make mistakes :(. Send me a PM if you find an issue."""
+This action was performed by a bot. I am new and still being developed so I will probably make mistakes :(.  Please send me a PM if you find an issue."""
 
 def process_file(infile, outfile):
     with open('/tmp/ffmpeg_log.log', 'w') as log:
