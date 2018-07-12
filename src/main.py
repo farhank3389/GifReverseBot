@@ -45,9 +45,12 @@ def get_file(url):
 
         url = json["gfyItem"]["mp4Url"]
 
-    elif parse.path.endswith('.gifv'):
-        replace_gifv = parse._replace(path = parse.path[:-4] + 'mp4')
-        url = replace_gifv.geturl()
+    elif parse.netloc.lower() == "i.imgur.com":
+        if parse.path.endswith('.gifv'):
+            replace_gifv = parse._replace(path = parse.path[:-4] + 'mp4')
+            url = replace_gifv.geturl()
+    else:
+        return
 
     req = requests.get(url, stream=True)
     if req.status_code == 200:
@@ -55,7 +58,7 @@ def get_file(url):
             for chunk in req.iter_content(2048):
                 f.write(chunk)
 
-                if os.path.getsize("/tmp/temp_gif") > 100000000:
+                if os.path.getsize("/tmp/temp_gif") > 20000000:
                     return
         return True
 
