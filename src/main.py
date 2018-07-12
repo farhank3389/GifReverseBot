@@ -49,7 +49,8 @@ def get_file(url):
         if parse.path.endswith('.gifv'):
             replace_gifv = parse._replace(path = parse.path[:-4] + 'mp4')
             url = replace_gifv.geturl()
-    else:
+    elif parse.netloc.lower() not in ("giant.gyfcat.com", "zippy.gfycat.com"):
+        print("Not imgur or gfycat link")
         return
 
     req = requests.get(url, stream=True)
