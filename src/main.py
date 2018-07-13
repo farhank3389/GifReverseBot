@@ -20,11 +20,13 @@ This action was performed by a bot. I am new and still being developed so I will
 def process_file(infile, outfile):
     logger.debug("Processing {} to {}".format(infile, outfile))
     with open('/tmp/ffmpeg_log.log', 'w') as log:
-        ret = subprocess.run(['/usr/bin/ffmpeg', '-threads', '3', '-i', infile, '-vf', 'reverse', outfile], shell=False, stdout=log, stderr=log)
+        #ret = subprocess.run(['/usr/bin/ffmpeg', '-i', infile, '-vf', 'reverse', outfile], shell=False, stdout=log, stderr=log)
+        ret = subprocess.run(['/bin/bash', 'ffmpeg_reverse', infile], shell=False, stdout=log, stderr=log)
 
     try:
         ret.check_returncode()
     except subprocess.CalledProcessError as e:
+        logger.error(str(e))
         # log error
         return False
     

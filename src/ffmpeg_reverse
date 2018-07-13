@@ -1,0 +1,7 @@
+#!/bin/bash
+
+mkdir /tmp/temp_frames
+ffmpeg -i $1 -an -qscale 1 /tmp/temp_frames/%06d.jpg
+fps=`ffmpeg -i $1 -hide_banner 2>&1 | grep -oP "\d+\.?\d* fps" | sed -e 's/ fps//g'`
+cat $(ls -r /tmp/temp_frames/*jpg) | ffmpeg -f image2pipe -vcodec mjpeg -r $fps -i - /tmp/reversed.mp4
+rm -rf /tmp/temp_frames
